@@ -1,20 +1,31 @@
 @echo off
-title Windows License Management Script
+title Windows and Office License Management Script
+
+:: Check for Administrative Privileges
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo Administrative privileges are required.
+    echo Please run this script as an administrator.
+    pause
+    exit
+)
 
 :actionmenu
 echo ========================================
 echo Choose an operation:
 echo 1. Activate Windows
 echo 2. Unactivate Windows
-echo 3. Reactivate Windows / Change Windows Version.
+echo 3. Reactivate Windows / Change Windows Version
 echo 4. Check Activation Expiration Date
+echo 5. Activate Microsoft Office
 echo ========================================
-set /p choice=Enter choice (1-4): 
+set /p choice=Enter choice (1-5): 
 
 if "%choice%"=="1" goto chooseversion
 if "%choice%"=="2" goto unactivate
 if "%choice%"=="3" goto chooseversion
 if "%choice%"=="4" goto checkexpiration
+if "%choice%"=="5" goto activateoffice
 
 echo Invalid selection, please try again.
 goto actionmenu
@@ -32,7 +43,7 @@ echo 7. Education
 echo 8. Education N
 echo 9. Enterprise
 echo 10. Enterprise N
-echo Windows Enterprise are reccommended. N version are not reccomended since they don't have multimedia service. Of course, you can download it back.
+echo Windows Enterprise are recommended. N version are not recommended since they don't have multimedia service. Of course, you can download it back.
 echo ========================================
 set /p version=Enter number (1-10): 
 
@@ -59,26 +70,50 @@ if "%choice%"=="3" goto reactivate
 
 :activate
 echo Activating Windows. Stay online and wait.
-slmgr /ipk %key%
-slmgr /skms kms8.msguides.com
-slmgr /ato
+cscript //nologo //B slmgr.vbs /ipk %key%
+cscript //nologo //B slmgr.vbs /skms kms8.msguides.com
+cscript //nologo //B slmgr.vbs /ato
+echo Activation is now completed.
 goto actionmenu
 
 :unactivate
 echo Unactivating Windows...
-slmgr /upk
+cscript //nologo //B slmgr.vbs /upk
+echo Unactivated.
 goto actionmenu
 
 :reactivate
 echo Reactivating Windows...
-slmgr /ipk %key%
-slmgr /skms kms8.msguides.com
-slmgr /ato
+cscript //nologo //B slmgr.vbs /ipk %key%
+cscript //nologo //B slmgr.vbs /skms kms8.msguides.com
+cscript //nologo //B slmgr.vbs /ato
+We've Reactivated / Changed the version of your Windows
 goto actionmenu
 
 :checkexpiration
 echo Checking the license expiration date...
-slmgr /xpr
+cscript //nologo //B slmgr.vbs /xpr
+pause
+goto actionmenu
+
+:activateoffice
+echo Activating Microsoft Office. Stay online and wait.
+
+:: Check Office installation directory and navigate
+if exist "C:\Program Files\Microsoft Office\Office16" (
+    cd "C:\Program Files\Microsoft Office\Office16"
+) else (
+    cd "C:\Program Files (x86)\Microsoft Office\Office16"
+)
+
+:: Connect to the KMS server and activate Office
+cscript ospp.vbs /sethst:ug-kms.uni-goettingen.de
+cscript ospp.vbs /act
+
+:: Create Scheduled Task for Office Activation
+schtasks /create /tn "OfficeActivationTask" /tr "%~f0" /sc daily /mo 5 /f /rl highest
+
+echo Office Activation setup complete. The task will run every 5 days.
 pause
 goto actionmenu
 
